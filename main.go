@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/synka777/cert-renewer/internal/config"
+	"github.com/synka777/cert-renewer/internal/hosting"
 )
 
 func main() {
@@ -21,7 +21,13 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	fmt.Printf("Loaded config for domain: %s \n", cfg.Domain)
-	fmt.Printf("Services to restart: %v\n", cfg.Services)
+	client, err := hosting.NewClient(cfg.Hosting.Username, cfg.Hosting.Password)
+	if err != nil {
+		log.Fatalf("failed to create hosting client: %v", err)
+	}
+
+	if err := client.Login(); err != nil {
+		log.Fatalf("failed to login: %v", err)
+	}
 	os.Exit(0)
 }
