@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/synka777/cert-renewer/internal/config"
+	"github.com/synka777/cert-renewer/internal/dns"
 	"github.com/synka777/cert-renewer/internal/hosting"
 )
 
@@ -29,5 +30,11 @@ func main() {
 	if err := client.Login(); err != nil {
 		log.Fatalf("failed to login: %v", err)
 	}
+
+	// Smoke test: poll for a fake value so we can see the loop in action
+	if err := dns.WaitForTXT(cfg.Domain, "fake-test_value"); err != nil {
+		log.Printf("poller stopped: %v", err)
+	}
+
 	os.Exit(0)
 }
