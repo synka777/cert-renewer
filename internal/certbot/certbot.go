@@ -15,7 +15,7 @@ const (
 
 // Renew runs certbot in manual DNS mode. By the time this is called,
 // the TXT record must already be propagated.
-func Renew(domain string) error {
+func Renew(domain string, dryRun bool) error {
 	if err := writeHooks(); err != nil {
 		return err
 	}
@@ -23,11 +23,8 @@ func Renew(domain string) error {
 	// defer removeHooks() ensures the temp scripts are cleaned up even if certbot fails.
 	defer removeHooks()
 
-	log.Printf("running certbot renew for %s", domain)
-	// exec.Command is Go's way of running external processes. It doesn't invoke a shell,
-	// it executes the binary directly with the arguments you pass as separate strings.
-	// This is safer than shell invocation (no injection risks) but means you can't use shell features like pipes or globs directly.
-	cmd := exec.Command(
+	log.Printf("running certbot renew for %s (dry-run: %v)", domain, dryRun)
+	args := []string{
 		"certbot", "renew",
 		"--manual",
 		"--preferred-challenges", "dns",
@@ -35,7 +32,16 @@ func Renew(domain string) error {
 		"--manual-cleanup-hook", cleanupHookPath,
 		"--cert-name", domain, // Tells certbot which certificate to renew by name (matching what's in /etc/letsencrypt/live/).
 		"--non-interactive",
-	)
+	}
+
+	if dryRun {
+		args = append(args, "--dry-run")
+	}
+
+	// exec.Command is Go's way of running external processes. It doesn't invoke a shell,
+	// it executes the binary directly with the arguments you pass as separate strings.
+	// This is safer than shell invocation (no injection risks) but means you can't use shell features like pipes or globs directly.
+	cmd := exec.Command("certbot", args...)
 
 	// Wires certbot's output directly to our process's stdout/stderr.
 	// Without this, certbot's output is silently swallowed, you'd have no idea what it's doing.
