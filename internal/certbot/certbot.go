@@ -7,29 +7,17 @@ import (
 	"os/exec"
 )
 
-const (
-	authHookPath    = "/tmp/cert-renewer-auth-hook.sh"
-	cleanupHookPath = "/tmp/cert-renewer-cleanup-hook.sh"
-	hookScript      = "#!/bin/sh\nexit 0\n"
-)
-
-// Renew runs certbot in manual DNS mode. By the time this is called,
-// the TXT record must already be propagated.
-func Renew(domain string, dryRun bool) error {
-	if err := writeHooks(); err != nil {
-		return err
-	}
-
-	// defer removeHooks() ensures the temp scripts are cleaned up even if certbot fails.
-	defer removeHooks()
-
+// Renew runs certbot in manual DNS mode. It points --manual-auth-hook and
+// --manual-cleanup-hook back at our own binary, which handles DNS and cleanup.
+func Renew(domain, hookBinary, configFlag string, dryRun bool) error {
 	log.Printf("running certbot renew for %s (dry-run: %v)", domain, dryRun)
+
 	args := []string{
-		"certbot", "renew",
+		"renew",
 		"--manual",
 		"--preferred-challenges", "dns",
-		"--manual-auth-hook", authHookPath,
-		"--manual-cleanup-hook", cleanupHookPath,
+		"--manual-auth-hook", hookBinary + " --auth-hook " + configFlag,
+		"--manual-cleanup-hook", hookBinary + " --cleanup-hook " + configFlag,
 		"--cert-name", domain, // Tells certbot which certificate to renew by name (matching what's in /etc/letsencrypt/live/).
 		"--non-interactive",
 	}
@@ -59,23 +47,4 @@ func Renew(domain string, dryRun bool) error {
 
 	log.Printf("certbot renew completed successfully")
 	return nil
-}
-
-func writeHooks() error {
-	for _, path := range []string{authHookPath, cleanupHookPath} {
-		if err := os.WriteFile(path, []byte(hookScript), 0755); err != nil {
-			return fmt.Errorf("writing hook script %s: %w", path, err)
-		}
-	}
-	return nil
-}
-
-func removeHooks() {
-	for _, path := range []string{authHookPath, cleanupHookPath} {
-		if err := os.Remove(path); err != nil {
-			// Only log a warning if removal fails rather than returning an error; this is intentional.
-			// Cleanup failures are worth knowing about but shouldn't mask the real error that caused the function to return.
-			log.Printf("warning: failed to remove hook script %s: %v", path, err)
-		}
-	}
 }
