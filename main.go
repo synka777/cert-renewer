@@ -72,6 +72,7 @@ func runAuthHook(cfg *config.Config) {
 }
 
 func runCleanupHook(cfg *config.Config) {
+	log.Printf("cleanup hook called") // temporary debug
 	validation := os.Getenv("CERTBOT_VALIDATION")
 	if validation == "" {
 		log.Fatalf("CERTBOT_VALIDATION env var not set — are you running this directly?")

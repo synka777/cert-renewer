@@ -18,8 +18,9 @@ func Renew(domain, hookBinary, configFlag string, dryRun bool) error {
 		"--preferred-challenges", "dns",
 		"--manual-auth-hook", hookBinary + " --auth-hook " + configFlag,
 		"--manual-cleanup-hook", hookBinary + " --cleanup-hook " + configFlag,
-		"--cert-name", domain, // Tells certbot which certificate to renew by name (matching what's in /etc/letsencrypt/live/).
+		"--cert-name", domain,
 		"--non-interactive",
+		"-v", // temporary, remove after debugging
 	}
 
 	if dryRun {

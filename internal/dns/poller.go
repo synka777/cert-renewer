@@ -54,18 +54,26 @@ func WaitForTXT(domain, expectedValue string) error {
 }
 
 func checkTXT(fqdn, expectedValue string) (bool, error) {
-	records, err := net.LookupTXT(fqdn)
+	// Query 1984's authoritative nameserver directly to bypass
+	// the wildcard CNAME that the recursive resolver follows
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{}
+			return d.DialContext(ctx, "udp", "185.112.145.12:53")
+		},
+	}
+
+	records, err := resolver.LookupTXT(context.Background(), fqdn)
 	if err != nil {
-		// DNS error type assertion err.(*net.DNSError)
-		// this is Go's way of inspecting the concrete type behind an interface.
-		// net.LookupTXT returns a plain error interface, but the actual value underneath may be a *net.DNSError which has extra fields like IsNotFound.
-		// The ok pattern (value, ok := x.(Type)) is a safe assertion — if the underlying type doesn't match, ok is false and the code doesn't panic.
-		// We use this to distinguish "record doesn't exist yet" (normal during propagation, not an error) from a genuine network failure.
 		if dnsErr, ok := err.(*net.DNSError); ok && dnsErr.IsNotFound {
 			return false, nil
 		}
 		return false, fmt.Errorf("looking up TXT records for %s: %w", fqdn, err)
 	}
+
+	log.Printf("found TXT records for %s: %v", fqdn, records)
+	log.Printf("expecting: %s", expectedValue)
 
 	for _, record := range records {
 		if record == expectedValue {

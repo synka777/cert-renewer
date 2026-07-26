@@ -121,7 +121,7 @@ func (c *Client) AddTXTRecord(domain, value string) error {
 		"ttl":   {"900"},
 		"zone":  {domain},
 		"host":  {"_acme-challenge"},
-		"value": {value},
+		"rdata": {value},
 	}
 
 	return c.postDNSEntry(domain, csrf, fields)
@@ -138,7 +138,7 @@ func (c *Client) DeleteTXTRecord(domain, value string) error {
 		"type":  {"TXT"},
 		"zone":  {domain},
 		"host":  {"_acme-challenge"},
-		"value": {value},
+		"rdata": {value},
 	}
 
 	return c.postDNSEntry(domain, csrf, fields)
@@ -158,10 +158,6 @@ func (c *Client) postDNSEntry(domain, csrf string, fields url.Values) error {
 		return fmt.Errorf("posting DNS entry: %w", err)
 	}
 	defer resp.Body.Close()
-
-	// temporary debug
-	body, _ := io.ReadAll(resp.Body)
-	fmt.Println(string(body))
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status %d from DNS entry endpoint", resp.StatusCode)
