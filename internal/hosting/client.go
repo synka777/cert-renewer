@@ -159,6 +159,10 @@ func (c *Client) postDNSEntry(domain, csrf string, fields url.Values) error {
 	}
 	defer resp.Body.Close()
 
+	// temporary debug
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status %d from DNS entry endpoint", resp.StatusCode)
 	}
