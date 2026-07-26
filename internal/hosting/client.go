@@ -130,8 +130,11 @@ func (c *Client) fetchDNSPageCSRF(domain string) (string, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("reading DNS page body %w", err)
+		return "", fmt.Errorf("reading DNS page body: %w", err)
 	}
+
+	// temporary debug - remove after
+	fmt.Println(string(body))
 
 	csrf, err := extractCSRF(body)
 	if err != nil {
